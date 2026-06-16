@@ -1,2 +1,4 @@
 *.env
 .claude
+backend/venv/
+frontend/node_modules/
