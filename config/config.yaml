@@ -12,7 +12,7 @@ api:
   - http://127.0.0.1:3001
 llm:
   api_endpoint: https://api.anthropic.com
-  api_key: asdfasdfasdf
+  api_key: "${LLM_API_KEY}"
   model_name: claude-sonnet-4-6
   temperature: 0.2
   max_tokens: 2048
@@ -22,10 +22,10 @@ admin:
   username: admin
   password: admin
 paths:
-  raw_pdfs: ./backend/data/rawPDF
-  markdown_output: ./backend/data/markdown
-  vectorstore: ./backend/data/vectorstore
-  index_file: ./backend/data/markdown/INDEX.md
+  raw_pdfs: /Users/ankita/Repos/civicassist/backend/data/rawPDF
+  markdown_output: /Users/ankita/Repos/civicassist/backend/data/markdown
+  vectorstore: /Users/ankita/Repos/civicassist/backend/data/vectorstore
+  index_file: /Users/ankita/Repos/civicassist/backend/data/markdown/INDEX.md
 chromadb:
   collection_name: uruguay_law
   persist_directory: ./backend/data/vectorstore

@@ -3,6 +3,8 @@
 **CivicAssist** is a RAG-powered bilingual legal assistant for Uruguayan immigration and identity processes.
 It supports Spanish and English, and answers questions using local knowledge from PDF and web sources.
 
+**Docs:** [Vision](docs/VISION.md) · [Architecture](docs/ARCHITECTURE.md) · [User Guide](docs/USER_GUIDE.md)
+
 ## Key Features
 
 - Question answering for Uruguayan:

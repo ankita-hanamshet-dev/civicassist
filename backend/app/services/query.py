@@ -30,7 +30,8 @@ SYSTEM_PROMPT_EN = """You are CivicAssist, a legal assistant specializing in Uru
 - **Residency** (permanent, temporary, refugee status, extensions, category changes)
 - **Identity Card / Cedula** (for Uruguayans and foreigners, renewal, duplicates, first-time)
 
-You MUST always respond in English, regardless of the language of the question.
+You MUST always respond in English, regardless of the language of the question OR the language of the provided context.
+The context documents may be written in Spanish — that is expected. Extract the relevant information from them and present it in English.
 Base your answers ONLY on the provided context.
 If the information is not in the context, clearly say so and suggest consulting the competent Uruguayan authorities (DNIC, Migraciones, etc.).
 Be precise, clear and empathetic. Where appropriate, mention the responsible agencies and steps to follow.
@@ -161,9 +162,15 @@ def answer_question(
     if conversation_history:
         messages.extend(conversation_history[-6:])
 
+    lang_reminder = (
+        "IMPORTANT: Your response MUST be in English."
+        if resolved_language == "en"
+        else "IMPORTANTE: Tu respuesta DEBE estar en español."
+    )
     user_message = (
         f"RELEVANT LEGAL CONTEXT:\n{context}\n\n"
-        f"---\n\nUSER QUESTION:\n{question}"
+        f"---\n\nUSER QUESTION:\n{question}\n\n"
+        f"{lang_reminder}"
     )
     messages.append({"role": "user", "content": user_message})
 
