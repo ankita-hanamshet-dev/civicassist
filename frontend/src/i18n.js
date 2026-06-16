@@ -1,0 +1,132 @@
+export const DEFAULT_LANGUAGE = 'en'
+
+export const translations = {
+  en: {
+    tagline: 'Legal Assistant',
+    navChat: 'Chat',
+    navAdmin: 'Admin',
+    categories: 'Categories',
+    quickQuestions: 'Quick Questions',
+    officialResources: 'Official Resources',
+    welcomeTitle: 'Welcome to UruguayLex',
+    welcomeSubtitle: 'I answer questions about residency and identity card rules in Uruguay. Ask me in Spanish or English.',
+    newConversation: 'New conversation',
+    consultations: 'conversation(s)',
+    clear: 'Clear',
+    placeholder: 'Type your question...',
+    sendTitle: 'Send (Enter)',
+    inputHint: 'Enter to send · Shift+Enter for new line',
+    adminTitle: 'Administration',
+    adminSubtitle: 'Manage document ingestion, indexing and the vector store.',
+    systemStatus: 'System Status',
+    vectorStats: 'Current ChromaDB vector store stats.',
+    loading: 'Loading…',
+    refresh: 'Refresh',
+    fullIngest: 'Full Ingestion',
+    fullIngestDesc: 'Process PDFs from the configured folder, scrape gub.uy, generate Markdown, build INDEX.md and embed everything into ChromaDB.',
+    startIngest: 'Start Ingestion',
+    reindex: 'Reindex',
+    reindexDesc: 'Regenerate INDEX.md and re-embed existing Markdown files without re-downloading or converting PDFs.',
+    reindexAction: 'Re-index',
+    configuration: 'Configuration',
+    configurationDesc: 'Paths and settings are configured in config/config.yaml.',
+    pdfSource: 'Source PDFs',
+    markdownOutput: 'Markdown output',
+    vectorStore: 'Vector store',
+    llmModel: 'LLM model',
+    footer: 'UruguayLex v1.0 · Informational purposes only. Always verify with official authorities.',
+    resourceLinks: [
+      { label: 'DNIC — ID card', href: 'https://www.dnic.gub.uy' },
+      { label: 'Trámites Uruguay', href: 'https://www.gub.uy/tramites' },
+      { label: 'Migraciones', href: 'https://www.migracion.gub.uy' },
+      { label: 'MIDES', href: 'https://www.mides.gub.uy' },
+    ],
+  },
+  es: {
+    tagline: 'Asistente Legal',
+    navChat: 'Consultas',
+    navAdmin: 'Admin',
+    categories: 'Categorías',
+    quickQuestions: 'Preguntas Frecuentes',
+    officialResources: 'Recursos Oficiales',
+    welcomeTitle: 'Bienvenido a UruguayLex',
+    welcomeSubtitle: 'Resuelvo consultas sobre residencia y cédula de identidad en Uruguay. Pregúntame en español o en inglés.',
+    newConversation: 'Nueva consulta',
+    consultations: 'consulta(s)',
+    clear: 'Limpiar',
+    placeholder: 'Escriba su consulta...',
+    sendTitle: 'Enviar (Enter)',
+    inputHint: 'Enter para enviar · Shift+Enter para nueva línea',
+    adminTitle: 'Panel de Administración',
+    adminSubtitle: 'Gestiona la ingestión de documentos, el índice y la base de vectores.',
+    systemStatus: 'Estado del Sistema',
+    vectorStats: 'Estadísticas actuales del vector store (ChromaDB).',
+    loading: 'Cargando…',
+    refresh: 'Actualizar',
+    fullIngest: 'Ingestión Completa',
+    fullIngestDesc: 'Procesa los PDFs desde la carpeta configurada, raspa gub.uy, genera Markdown, construye INDEX.md y embebe todo en ChromaDB.',
+    startIngest: 'Iniciar Ingestión',
+    reindex: 'Re-indexar',
+    reindexDesc: 'Regenera INDEX.md y re-embebe los archivos Markdown existentes sin volver a descargar ni convertir PDFs.',
+    reindexAction: 'Re-indexar',
+    configuration: 'Configuración',
+    configurationDesc: 'Rutas y parámetros configurados en config/config.yaml.',
+    pdfSource: 'PDFs fuente',
+    markdownOutput: 'Markdown output',
+    vectorStore: 'Vector store',
+    llmModel: 'Modelo LLM',
+    footer: 'UruguayLex v1.0 · Información de carácter orientativo. Consulte siempre con las autoridades competentes.',
+    resourceLinks: [
+      { label: 'DNIC — Cédula', href: 'https://www.dnic.gub.uy' },
+      { label: 'Trámites Uruguay', href: 'https://www.gub.uy/tramites' },
+      { label: 'Migraciones', href: 'https://www.migracion.gub.uy' },
+      { label: 'MIDES', href: 'https://www.mides.gub.uy' },
+    ],
+  },
+}
+
+export const categories = {
+  en: [
+    { id: 'residencia', label: 'Residency', icon: '🏠' },
+    { id: 'cedula', label: 'ID Card', icon: '🪪' },
+  ],
+  es: [
+    { id: 'residencia', label: 'Residencia', icon: '🏠' },
+    { id: 'cedula', label: 'Cédula', icon: '🪪' },
+  ],
+}
+
+export const quickQuestions = {
+  en: [
+    { cat: 'residencia', text: 'What are the requirements for legal residency in Uruguay?' },
+    { cat: 'residencia', text: 'How do I apply for temporary residency?' },
+    { cat: 'cedula', text: 'How do I get an Uruguayan ID card as a foreigner?' },
+    { cat: 'cedula', text: 'Where can I renew my identity card in Uruguay?' },
+  ],
+  es: [
+    { cat: 'residencia', text: '¿Cómo solicito la residencia permanente en Uruguay?' },
+    { cat: 'residencia', text: '¿Qué documentos necesito para la residencia temporaria?' },
+    { cat: 'cedula', text: '¿Cómo saco la cédula siendo extranjero?' },
+    { cat: 'cedula', text: '¿Dónde renuevo la cédula de identidad?' },
+  ],
+}
+
+export const starters = {
+  en: [
+    { icon: '🏠', title: 'Permanent Residency', desc: 'How to get permanent residency in Uruguay', q: 'What are the steps to obtain permanent residency in Uruguay?' },
+    { icon: '⏱️', title: 'Temporary Residency', desc: 'Requirements and timelines', q: 'What documents do I need to apply for temporary residency?' },
+    { icon: '🪪', title: 'Foreign ID Card', desc: 'Identity for non-citizens', q: 'How do I get a Uruguayan ID card as a foreigner?' },
+    { icon: '🔄', title: 'ID Renewal', desc: 'Renew an expired document', q: 'How do I renew my expired identity card?' },
+  ],
+  es: [
+    { icon: '🏠', title: 'Residencia Permanente', desc: '¿Cómo obtengo la residencia permanente?', q: '¿Cuáles son los pasos para obtener la residencia permanente en Uruguay?' },
+    { icon: '⏱️', title: 'Residencia Temporaria', desc: 'Requisitos y plazos', q: '¿Qué documentos necesito para tramitar la residencia temporaria?' },
+    { icon: '🪪', title: 'Cédula Extranjeros', desc: 'Identidad para no-ciudadanos', q: '¿Cómo obtengo la cédula de identidad siendo extranjero en Uruguay?' },
+    { icon: '🔄', title: 'Renovación Cédula', desc: 'Renovar el documento vencido', q: '¿Cómo renuevo mi cédula de identidad vencida?' },
+  ],
+}
+
+export const languageLabels = {
+  en: 'English',
+  es: 'Español',
+}

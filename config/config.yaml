@@ -1,0 +1,57 @@
+app:
+  name: "UruguayLex - Asistente Legal"
+  version: "1.0.0"
+  debug: false
+
+api:
+  base_url: "http://localhost:8000"
+  prefix: "/api/v1"
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+
+anthropic:
+  api_key: "${ANTHROPIC_API_KEY}"
+  model: "claude-sonnet-4-6"
+  max_tokens: 2048
+  temperature: 0.2
+
+paths:
+  raw_pdfs: "C:/Users/abirs/Documents/Cursor/LAWassist/data/raw_pdfs"
+  markdown_output: "./backend/data/markdown"
+  vectorstore: "./backend/data/vectorstore"
+  index_file: "./backend/data/markdown/INDEX.md"
+
+chromadb:
+  collection_name: "uruguay_law"
+  persist_directory: "./backend/data/vectorstore"
+  embedding_model: "all-MiniLM-L6-v2"
+
+scraping:
+  base_url: "https://www.gub.uy/tramites/"
+  target_keywords:
+    - "residencia"
+    - "cédula"
+    - "cedula"
+    - "identidad"
+    - "migraciones"
+    - "extranjeros"
+  delay_seconds: 1.5
+  timeout_seconds: 30
+
+categories:
+  residencia:
+    subcategories:
+      - "Residencia Permanente"
+      - "Residencia Temporaria"
+      - "Residencia Legal"
+      - "Refugio"
+      - "Prórroga de Residencia"
+      - "Cambio de Categoría"
+  cedula:
+    subcategories:
+      - "Cédula de Identidad para Uruguayos"
+      - "Cédula de Identidad para Extranjeros"
+      - "Renovación de Cédula"
+      - "Primera vez"
+      - "Duplicado"
