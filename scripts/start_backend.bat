@@ -27,8 +27,7 @@ call venv\Scripts\activate.bat
 
 REM Install deps
 echo [INFO] Instalando dependencias...
-pip install -r requirements.txt --quiet
-
+pip install -r ..\backend\requirements.txt 
 REM Copy .env if not present
 if not exist ".env" (
     if exist "..\env.example" copy "..\env.example" ".env"
@@ -39,6 +38,6 @@ REM Start
 echo [INFO] Iniciando FastAPI en http://localhost:8000
 echo [INFO] Documentacion: http://localhost:8000/docs
 echo.
-python main.py
+python ..\backend\main.py
 
 pause
