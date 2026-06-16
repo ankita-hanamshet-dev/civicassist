@@ -19,11 +19,14 @@ class APIConfig(BaseModel):
     cors_origins: List[str] = ["http://localhost:3000"]
 
 
-class AnthropicConfig(BaseModel):
+class LLMConfig(BaseModel):
+    api_endpoint: str = "https://api.anthropic.com"
     api_key: str = ""
-    model: str = "claude-sonnet-4-6"
-    max_tokens: int = 2048
+    model_name: str = "claude-sonnet-4-6"
     temperature: float = 0.2
+    max_tokens: int = 2048
+    chat_endpoint: str = "/v1/chat/completions"
+    embedding_endpoint: str = "/v1/embeddings"
 
 
 class PathsConfig(BaseModel):
@@ -40,7 +43,7 @@ class ChromaConfig(BaseModel):
 
 
 class ScrapingConfig(BaseModel):
-    base_url: str = "https://www.gub.uy/tramites/"
+    base_urls: List[str] = ["https://www.gub.uy/tramites/"]
     target_keywords: List[str] = []
     delay_seconds: float = 1.5
     timeout_seconds: int = 30
@@ -52,10 +55,16 @@ class AppConfig(BaseModel):
     debug: bool = False
 
 
+class AdminConfig(BaseModel):
+    username: str = "admin"
+    password: str = "admin"
+
+
 class Settings(BaseModel):
     app: AppConfig = AppConfig()
     api: APIConfig = APIConfig()
-    anthropic: AnthropicConfig = AnthropicConfig()
+    llm: LLMConfig = LLMConfig()
+    admin: AdminConfig = AdminConfig()
     paths: PathsConfig = PathsConfig()
     chromadb: ChromaConfig = ChromaConfig()
     scraping: ScrapingConfig = ScrapingConfig()
@@ -133,6 +142,18 @@ def load_settings(config_path: Optional[str] = None) -> Settings:
     repo_root = path.parent.parent
     raw = _resolve_path_values(raw, repo_root)
 
+    # Support legacy anthropic config block by mapping it into llm.
+    if "anthropic" in raw and "llm" not in raw and isinstance(raw["anthropic"], dict):
+        raw["llm"] = {
+            "api_endpoint": raw["anthropic"].get("api_endpoint", "https://api.anthropic.com"),
+            "api_key": raw["anthropic"].get("api_key", ""),
+            "model_name": raw["anthropic"].get("model", "claude-sonnet-4-6"),
+            "max_tokens": raw["anthropic"].get("max_tokens", 2048),
+            "temperature": raw["anthropic"].get("temperature", 0.2),
+            "chat_endpoint": raw["anthropic"].get("chat_endpoint", "/v1/chat/completions"),
+            "embedding_endpoint": raw["anthropic"].get("embedding_endpoint", "/v1/embeddings"),
+        }
+
     if path.exists():
         logger.info(f"Loaded configuration from {path}")
     logger.info("Resolved paths:")
@@ -142,12 +163,30 @@ def load_settings(config_path: Optional[str] = None) -> Settings:
     if isinstance(raw.get("chromadb"), dict) and raw["chromadb"].get("persist_directory"):
         logger.info(f"  chromadb.persist_directory = {raw['chromadb']['persist_directory']}")
 
-    # Override API key from env if present
-    api_key_env = os.getenv("ANTHROPIC_API_KEY", "")
-    if api_key_env and "anthropic" in raw:
-        raw["anthropic"]["api_key"] = api_key_env
-    elif api_key_env:
-        raw.setdefault("anthropic", {})["api_key"] = api_key_env
+    # Override LLM configuration values from environment variables if present.
+    api_key_env = os.getenv("LLM_API_KEY", "") or os.getenv("ANTHROPIC_API_KEY", "")
+    if api_key_env:
+        if "llm" in raw:
+            raw["llm"]["api_key"] = api_key_env
+        else:
+            raw.setdefault("llm", {})["api_key"] = api_key_env
+
+    for env_name, raw_key in [
+        ("LLM_API_ENDPOINT", "api_endpoint"),
+        ("LLM_CHAT_ENDPOINT", "chat_endpoint"),
+        ("LLM_EMBEDDING_ENDPOINT", "embedding_endpoint"),
+        ("LLM_MODEL_NAME", "model_name"),
+    ]:
+        env_value = os.getenv(env_name, "")
+        if env_value:
+            raw.setdefault("llm", {})[raw_key] = env_value
+
+    admin_username = os.getenv("ADMIN_USERNAME", "")
+    admin_password = os.getenv("ADMIN_PASSWORD", "")
+    if admin_username:
+        raw.setdefault("admin", {})["username"] = admin_username
+    if admin_password:
+        raw.setdefault("admin", {})["password"] = admin_password
 
     return Settings(**raw)
 

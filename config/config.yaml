@@ -1,60 +1,60 @@
 app:
-  name: "CivicAssist - Asistente Legal"
-  version: "1.0.0"
+  name: CivicAssist - Asistente Legal
+  version: 1.0.0
   debug: true
-
-
 api:
-  base_url: "http://localhost:8000"
-  prefix: "/api/v1"
+  base_url: http://localhost:8000
+  prefix: /api/v1
   cors_origins:
-    - "http://localhost:3000"
-    - "http://localhost:3001"
-    - "http://localhost:5173"
-    - "http://127.0.0.1:3001"
-
-anthropic:
-  api_key: "${ANTHROPIC_API_KEY}"
-  model: "claude-sonnet-4-6"
-  max_tokens: 2048
+  - http://localhost:3000
+  - http://localhost:3001
+  - http://localhost:5173
+  - http://127.0.0.1:3001
+llm:
+  api_endpoint: https://api.anthropic.com
+  api_key: asdfasdfasdf
+  model_name: claude-sonnet-4-6
   temperature: 0.2
-
+  max_tokens: 2048
+  chat_endpoint: /v1/chat/completions
+  embedding_endpoint: /v1/embeddings
+admin:
+  username: admin
+  password: admin
 paths:
-  raw_pdfs: "./backend/data/rawPDF"
-  markdown_output: "./backend/data/markdown"
-  vectorstore: "./backend/data/vectorstore"
-  index_file: "./backend/data/markdown/INDEX.md"
-
+  raw_pdfs: ./backend/data/rawPDF
+  markdown_output: ./backend/data/markdown
+  vectorstore: ./backend/data/vectorstore
+  index_file: ./backend/data/markdown/INDEX.md
 chromadb:
-  collection_name: "uruguay_law"
-  persist_directory: "./backend/data/vectorstore"
-  embedding_model: "all-MiniLM-L6-v2"
-
+  collection_name: uruguay_law
+  persist_directory: ./backend/data/vectorstore
+  embedding_model: all-MiniLM-L6-v2
 scraping:
-  base_url: "https://www.gub.uy/tramites/"
+  base_urls:
+  - https://www.gub.uy/tramites/
   target_keywords:
-    - "residencia"
-    - "cédula"
-    - "cedula"
-    - "identidad"
-    - "migraciones"
-    - "extranjeros"
+  - residencia
+  - cédula
+  - cedula
+  - identidad
+  - migraciones
+  - extranjeros
   delay_seconds: 1.5
   timeout_seconds: 30
-
 categories:
   residencia:
     subcategories:
-      - "Residencia Permanente"
-      - "Residencia Temporaria"
-      - "Residencia Legal"
-      - "Refugio"
-      - "Prórroga de Residencia"
-      - "Cambio de Categoría"
+    - Residencia Permanente
+    - Residencia Temporaria
+    - Residencia Legal
+    - Refugio
+    - Prórroga de Residencia
+    - Cambio de Categoría
   cedula:
     subcategories:
-      - "Cédula de Identidad para Uruguayos"
-      - "Cédula de Identidad para Extranjeros"
-      - "Renovación de Cédula"
-      - "Primera vez"
-      - "Duplicado"
+    - Cédula de Identidad para Uruguayos
+    - Cédula de Identidad para Extranjeros
+    - Renovación de Cédula
+    - Primera vez
+    - Duplicado

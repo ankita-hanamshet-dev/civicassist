@@ -6,7 +6,7 @@ import Sidebar from '../components/Sidebar'
 import WelcomeScreen from '../components/WelcomeScreen'
 
 export default function ChatPage({ t, language }) {
-  const { messages, loading, ask, clear } = useChat()
+  const { messages, loading, ask, clear } = useChat(language)
   const bottomRef = useRef(null)
 
   useEffect(() => {

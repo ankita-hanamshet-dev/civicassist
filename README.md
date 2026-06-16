@@ -1,10 +1,19 @@
 # CivicAssist — Asistente Legal / Legal Assistant
 
-**CivicAssist** is a RAG-powered bilingual legal assistant specialising in Uruguayan law for:
-- **Residencia** (Permanent, Temporary, Refugio, Prórroga, Category Change)
-- **Cédula de Identidad** (Uruguayans, Foreigners, Renewal, First-time, Duplicates)
+**CivicAssist** is a RAG-powered bilingual legal assistant for Uruguayan immigration and identity processes.
+It supports Spanish and English, and answers questions using local knowledge from PDF and web sources.
 
-Users may ask questions in **Spanish or English**.
+## Key Features
+
+- Question answering for Uruguayan:
+  - **Residencia** (permanent, temporary, refugio, prórroga, cambio de categoría)
+  - **Cédula de Identidad** (uruguayos, extranjeros, renovación, duplicado, primera vez)
+- Retrieval-augmented generation (RAG) using ChromaDB
+- Generic LLM integration with:
+  - **Claude / Anthropic**
+  - **OpenAI**
+  - **On-prem or cloud Ollama**
+- Admin UI for ingesting PDFs, scraping, reindexing, vector-store stats, and **live config editing**
 
 ---
 
@@ -19,148 +28,229 @@ Users may ask questions in **Spanish or English**.
 ┌──────────────────────────▼──────────────────────────┐
 │              Backend (FastAPI / Python)              │
 │                                                      │
-│  POST /api/v1/chat        → query.py                 │
-│  POST /api/v1/admin/ingest → ingestion + scraper     │
-│  POST /api/v1/admin/reindex → indexer + vectorstore  │
-│  GET  /api/v1/admin/stats  → vectorstore stats       │
+│  POST /api/v1/chat              → query.py           │
+│  POST /api/v1/admin/ingest      → ingestion+scraper  │
+│  POST /api/v1/admin/reindex     → indexer+vectorstore│
+│  GET  /api/v1/admin/stats       → vectorstore stats  │
+│  GET  /api/v1/admin/config      → runtime config     │
+│  PUT  /api/v1/admin/config/llm  → update LLM config  │
+│  PUT  /api/v1/admin/config/paths→ update path config │
 │                                                      │
 │  Services:                                           │
 │  ├─ ingestion.py   PDF → Markdown                    │
 │  ├─ scraper.py     gub.uy → Markdown                 │
 │  ├─ indexer.py     → INDEX.md (decision tree)        │
 │  ├─ vectorstore.py → ChromaDB embed / retrieve       │
-│  └─ query.py       classify → retrieve → Claude      │
+│  ├─ llm.py         → LLM client abstraction          │
+│  └─ query.py       classify → retrieve → LLM         │
 └──────────────────────────────────────────────────────┘
                  │              │
-         ChromaDB         Claude API
-       (local vectors)   (claude-sonnet-4-6)
+       ChromaDB Local Vectors   Generic LLM API
 ```
+
+---
+
+## Requirements
+
+- Python 3.10+
+- Node.js 18+
+- Git
 
 ---
 
 ## Setup
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Anthropic API key
-
-### 1. Backend
+### Backend
 
 ```bash
 cd backend
-
-# Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # Linux/Mac
-
-# Install dependencies
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Linux / Mac
 pip install -r requirements.txt
-
-# Configure environment
-copy .env.example .env
-# Edit .env and set:  ANTHROPIC_API_KEY=your_key_here
-
-# Start server
-python main.py
-# → http://localhost:8000
-# → Docs: http://localhost:8000/docs
 ```
 
-### 2. Frontend
+Start the server:
+
+```bash
+cd backend
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Frontend
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# → http://localhost:3000
 ```
 
-### 3. Quick start (Windows)
-```
-scripts\start_backend.bat     # Terminal 1
-scripts\start_frontend.bat    # Terminal 2
+### Start with scripts (Windows)
+
+```bash
+scripts\start_backend.bat
+scripts\start_frontend.bat
 ```
 
 ---
 
-## First Run — Ingesting Data
+## Configuration
 
-1. Place your PDF files in:
-   `C:\Users\abirs\Documents\Cursor\LAWassist\data\raw_pdfs`
-   (or update `paths.raw_pdfs` in `config/config.yaml`)
+All configuration lives in `config/config.yaml`. The LLM, paths, and admin sections can be edited either directly in the file or live through the **Admin panel** in the UI — changes are written back to `config.yaml` immediately without a server restart.
 
-2. Open the app → **Admin** tab → click **Iniciar Ingestión**
-
-   This will:
-   - Convert PDFs to categorised Markdown files
-   - Scrape relevant pages from `gub.uy/tramites`
-   - Build `INDEX.md` (the decision-tree index)
-   - Embed everything into ChromaDB
-
-3. Switch to **Consultas** and start asking questions!
-
----
-
-## Configuration (`config/config.yaml`)
-
-| Key | Purpose |
-|-----|---------|
-| `anthropic.api_key` | Resolved from `$ANTHROPIC_API_KEY` env var |
-| `anthropic.model` | LLM model (`claude-sonnet-4-6`) |
-| `paths.raw_pdfs` | Source folder for PDF files |
-| `paths.markdown_output` | Where Markdown files are generated |
-| `paths.vectorstore` | ChromaDB persistence directory |
-| `paths.index_file` | Path to INDEX.md |
-| `chromadb.embedding_model` | Sentence-transformer model for embeddings |
-| `scraping.base_url` | Root URL for web crawl |
-| `scraping.target_keywords` | Keywords that determine relevance |
-| `api.cors_origins` | Allowed frontend origins |
-
----
-
-## INDEX.md — Decision Tree
-
-The auto-generated `INDEX.md` acts as the master index.
-Every Markdown file has YAML front-matter:
+Example `config/config.yaml`:
 
 ```yaml
----
-title: "Residencia Permanente en Uruguay"
-category: "residencia"
-subcategory: "Residencia Permanente"
-source: "PDF: decreto_residencia.pdf"
-index_creation_date: "2026-06-15"
----
+app:
+  name: "CivicAssist - Asistente Legal"
+  version: "1.0.0"
+  debug: true
+
+api:
+  base_url: "http://localhost:8000"
+  prefix: "/api/v1"
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+
+llm:
+  api_endpoint: "https://api.anthropic.com"
+  api_key: "${LLM_API_KEY}"
+  model_name: "claude-sonnet-4-6"
+  temperature: 0.2
+  max_tokens: 2048
+  chat_endpoint: "/v1/chat/completions"
+  embedding_endpoint: "/v1/embeddings"
+
+admin:
+  username: "admin"
+  password: "admin"
+
+paths:
+  raw_pdfs: "./backend/data/rawPDF"
+  markdown_output: "./backend/data/markdown"
+  vectorstore: "./backend/data/vectorstore"
+  index_file: "./backend/data/markdown/INDEX.md"
+
+chromadb:
+  collection_name: "uruguay_law"
+  persist_directory: "./backend/data/vectorstore"
+  embedding_model: "all-MiniLM-L6-v2"
 ```
 
-The query pipeline:
-1. **Classify** → Claude reads the question and returns `{category, subcategory}`
-2. **Filter** → ChromaDB query is scoped to those metadata fields
-3. **Generate** → Claude answers grounded in the retrieved chunks
+### Environment variable overrides
+
+The backend reads these env vars and applies them on top of `config.yaml`:
+
+| Variable | Config key |
+|----------|-----------|
+| `LLM_API_KEY` or `ANTHROPIC_API_KEY` | `llm.api_key` |
+| `LLM_API_ENDPOINT` | `llm.api_endpoint` |
+| `LLM_CHAT_ENDPOINT` | `llm.chat_endpoint` |
+| `LLM_EMBEDDING_ENDPOINT` | `llm.embedding_endpoint` |
+| `LLM_MODEL_NAME` | `llm.model_name` |
+| `ADMIN_USERNAME` | `admin.username` |
+| `ADMIN_PASSWORD` | `admin.password` |
+
+A `.env` file in `backend/` is automatically loaded.
+
+### Admin credentials
+
+Credentials are set in `config/config.yaml` under the `admin` section. The frontend posts them to `POST /api/v1/admin/auth` and stores a Basic auth token in `localStorage` for subsequent requests.
+
+---
+
+## LLM Provider Examples
+
+### Claude / Anthropic
+
+```yaml
+llm:
+  api_endpoint: "https://api.anthropic.com"
+  api_key: "${LLM_API_KEY}"
+  model_name: "claude-sonnet-4-6"
+  chat_endpoint: "/v1/chat/completions"
+  embedding_endpoint: "/v1/embeddings"
+```
+
+### OpenAI
+
+```yaml
+llm:
+  api_endpoint: "https://api.openai.com"
+  api_key: "${LLM_API_KEY}"
+  model_name: "gpt-4o-mini"
+  chat_endpoint: "/v1/chat/completions"
+  embedding_endpoint: "/v1/embeddings"
+```
+
+### Ollama (on-prem or cloud)
+
+```yaml
+llm:
+  api_endpoint: "http://localhost:11434"
+  api_key: ""
+  model_name: "llama3"
+  chat_endpoint: "/v1/chat/completions"
+  embedding_endpoint: "/v1/embeddings"
+```
+
+---
+
+## First Run — Ingest Data
+
+1. Add your PDF files to `backend/data/rawPDF` (or update `paths.raw_pdfs` in the config).
+2. Open the app and go to the **Admin** page.
+3. Click **Iniciar Ingestión**.
+
+This will:
+- Convert PDFs to Markdown
+- Scrape `gub.uy/tramites` for relevant pages
+- Build `INDEX.md`
+- Embed all content into ChromaDB
+
+Then use the **Chat** page to ask questions.
 
 ---
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Health check |
-| GET | `/health` | Health check |
-| POST | `/api/v1/chat` | Send a question, get an answer |
-| POST | `/api/v1/admin/ingest` | Full ingest (PDF + scrape + embed) |
-| POST | `/api/v1/admin/reindex` | Rebuild index + re-embed |
-| GET | `/api/v1/admin/stats` | ChromaDB stats |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/v1/chat` | — | Send a question, receive an answer |
+| `POST` | `/api/v1/admin/auth` | — | Validate admin credentials |
+| `POST` | `/api/v1/admin/ingest` | Basic | Run full ingestion pipeline |
+| `POST` | `/api/v1/admin/reindex` | Basic | Rebuild INDEX and re-embed from existing Markdown |
+| `GET` | `/api/v1/admin/stats` | Basic | Vector store statistics |
+| `GET` | `/api/v1/admin/config` | Basic | Current runtime configuration (LLM + paths) |
+| `PUT` | `/api/v1/admin/config/llm` | Basic | Update LLM settings and persist to config.yaml |
+| `PUT` | `/api/v1/admin/config/paths` | Basic | Update path settings and persist to config.yaml |
 
 ### Chat request body
+
 ```json
 {
   "question": "¿Cómo obtengo la residencia permanente?",
   "conversation_history": [],
-  "session_id": "optional-uuid"
+  "session_id": "optional-uuid",
+  "language": "es"
 }
 ```
+
+---
+
+## Admin Panel
+
+The Admin page (requires login) provides:
+
+| Card | What it does |
+|------|-------------|
+| **System Status** | Shows vector store collection name, chunk count, and health |
+| **Full Ingest** | Runs the complete pipeline: PDF conversion, web scraping, indexing, and embedding |
+| **Reindex** | Rebuilds `INDEX.md` and re-embeds from existing Markdown without re-scraping |
+| **Configuration** | Displays and edits all settings (paths and LLM) with live save to `config.yaml` |
+
+The Configuration card has an **Edit** button that switches to an inline form. LLM API key is masked by default. Saving writes changes to `config.yaml` and reloads the backend singleton — no restart needed.
 
 ---
 
@@ -169,43 +259,40 @@ The query pipeline:
 ```
 lawassist/
 ├── config/
-│   └── config.yaml              # ← All configuration
+│   └── config.yaml
 ├── backend/
-│   ├── main.py                  # FastAPI entry point
+│   ├── main.py                  ← uvicorn entry point
 │   ├── requirements.txt
+│   ├── .env                     ← optional env overrides (gitignored)
 │   ├── app/
-│   │   ├── core/config.py       # Config loader
+│   │   ├── core/config.py       ← settings loader
 │   │   ├── api/
-│   │   │   ├── chat.py          # Chat endpoint
-│   │   │   └── admin.py         # Admin endpoints
-│   │   ├── models/schemas.py    # Pydantic models
+│   │   │   ├── chat.py
+│   │   │   └── admin.py
+│   │   ├── models/schemas.py
 │   │   └── services/
-│   │       ├── ingestion.py     # PDF → Markdown
-│   │       ├── scraper.py       # gub.uy crawler
-│   │       ├── indexer.py       # INDEX.md builder
-│   │       ├── vectorstore.py   # ChromaDB
-│   │       └── query.py         # Classify + RAG + LLM
+│   │       ├── ingestion.py
+│   │       ├── scraper.py
+│   │       ├── indexer.py
+│   │       ├── vectorstore.py
+│   │       ├── llm.py
+│   │       └── query.py
 │   └── data/
-│       ├── markdown/            # Generated .md files + INDEX.md
-│       └── vectorstore/         # ChromaDB persistence
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── pages/
-│   │   │   ├── ChatPage.jsx
-│   │   │   └── AdminPage.jsx
-│   │   ├── components/
-│   │   │   ├── Message.jsx
-│   │   │   ├── ChatInput.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── WelcomeScreen.jsx
-│   │   ├── hooks/useChat.js
-│   │   ├── utils/api.js
-│   │   └── styles/globals.css
-│   └── package.json
-└── scripts/
-    ├── start_backend.bat
-    └── start_frontend.bat
+│       ├── rawPDF/              ← drop PDFs here
+│       ├── markdown/
+│       └── vectorstore/
+└── frontend/
+    ├── index.html
+    ├── package.json
+    └── src/
+        ├── App.jsx
+        ├── i18n.js
+        ├── pages/
+        │   ├── ChatPage.jsx
+        │   └── AdminPage.jsx
+        ├── hooks/useChat.js
+        ├── utils/api.js
+        └── styles/globals.css
 ```
 
 ---

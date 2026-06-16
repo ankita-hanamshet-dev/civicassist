@@ -32,8 +32,8 @@ def _get_collection():
         settings = get_settings()
         client = _get_client()
         ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=settings.chromadb.embedding_model
-        )
+                model_name=settings.chromadb.embedding_model
+            )
         _collection = client.get_or_create_collection(
             name=settings.chromadb.collection_name,
             embedding_function=ef,

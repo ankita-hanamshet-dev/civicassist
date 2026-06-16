@@ -9,52 +9,66 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import anthropic
 from langdetect import detect as detect_lang
 from loguru import logger
 
 from app.core.config import get_settings
+from app.services.llm import create_chat_completion
 from app.services.vectorstore import retrieve
 
-SYSTEM_PROMPT = """Eres CivicAssist, un asistente legal especializado en leyes y trámites de Uruguay, específicamente en:
-- **Residencia** (permanente, temporaria, refugio, prórrogas, cambios de categoría)
-- **Cédula de Identidad** (uruguayos y extranjeros, renovación, duplicados, primera vez)
+SYSTEM_PROMPT_ES = """Eres CivicAssist, un asistente legal especializado en leyes y tramites de Uruguay, especificamente en:
+- **Residencia** (permanente, temporaria, refugio, prorrogas, cambios de categoria)
+- **Cedula de Identidad** (uruguayos y extranjeros, renovacion, duplicados, primera vez)
 
-Responde SIEMPRE en el mismo idioma que el usuario (español o inglés).
-Basa tus respuestas ÚNICAMENTE en el contexto proporcionado.
-Si la información no está en el contexto, indícalo claramente y sugiere consultar con las autoridades uruguayas competentes (DNIC, Migraciones, etc.).
-Sé preciso, claro y empático. Cuando corresponda, menciona los organismos responsables y los pasos a seguir.
-NO inventes información legal. Si hay dudas, recomienda consultar a un profesional o al organismo oficial."""
+DEBES responder SIEMPRE en espanol, independientemente del idioma de la pregunta.
+Basa tus respuestas UNICAMENTE en el contexto proporcionado.
+Si la informacion no esta en el contexto, indicalo claramente y sugiere consultar con las autoridades uruguayas competentes (DNIC, Migraciones, etc.).
+Se preciso, claro y empatico. Cuando corresponda, menciona los organismos responsables y los pasos a seguir.
+NO inventes informacion legal. Si hay dudas, recomienda consultar a un profesional o al organismo oficial."""
 
-CLASSIFICATION_PROMPT = """Analiza la siguiente pregunta del usuario y devuelve un JSON con la clasificación.
+SYSTEM_PROMPT_EN = """You are CivicAssist, a legal assistant specializing in Uruguayan laws and procedures, specifically:
+- **Residency** (permanent, temporary, refugee status, extensions, category changes)
+- **Identity Card / Cedula** (for Uruguayans and foreigners, renewal, duplicates, first-time)
 
-Pregunta: {question}
+You MUST always respond in English, regardless of the language of the question.
+Base your answers ONLY on the provided context.
+If the information is not in the context, clearly say so and suggest consulting the competent Uruguayan authorities (DNIC, Migraciones, etc.).
+Be precise, clear and empathetic. Where appropriate, mention the responsible agencies and steps to follow.
+Do NOT invent legal information. When in doubt, recommend consulting a professional or the official agency."""
 
-Devuelve SOLO un JSON (sin markdown, sin explicaciones) con este formato exacto:
+
+def _get_system_prompt(language: str) -> str:
+    return SYSTEM_PROMPT_EN if language == "en" else SYSTEM_PROMPT_ES
+
+
+CLASSIFICATION_PROMPT = """Analyze the following user question and return a JSON classification.
+
+Question: {question}
+
+Return ONLY a JSON object (no markdown, no explanation) in this exact format:
 {{
   "category": "residencia" | "cedula" | "unknown",
-  "subcategory": "<nombre de subcategoría específica o null>",
+  "subcategory": "<specific subcategory name or null>",
   "language": "es" | "en",
   "keywords": ["keyword1", "keyword2"]
 }}
 
-Categorías disponibles:
-- residencia: Residencia Permanente, Residencia Temporaria, Residencia Legal, Refugio, Prórroga de Residencia, Cambio de Categoría
-- cedula: Cédula de Identidad para Uruguayos, Cédula de Identidad para Extranjeros, Renovación de Cédula, Primera vez, Duplicado
+Available categories:
+- residencia: Residencia Permanente, Residencia Temporaria, Residencia Legal, Refugio, Prorroga de Residencia, Cambio de Categoria
+- cedula: Cedula de Identidad para Uruguayos, Cedula de Identidad para Extranjeros, Renovacion de Cedula, Primera vez, Duplicado
 """
 
 
-def _call_claude_json(prompt: str) -> Optional[Dict]:
+def _call_llm_json(prompt: str) -> Optional[Dict]:
     settings = get_settings()
-    client = anthropic.Anthropic(api_key=settings.anthropic.api_key)
     try:
-        msg = client.messages.create(
-            model=settings.anthropic.model,
-            max_tokens=256,
+        text = create_chat_completion(
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=256,
+            temperature=settings.llm.temperature,
+            model=settings.llm.model_name,
         )
-        text = msg.content[0].text.strip()
-        # Strip markdown fences if present
+        text = text.strip()
         text = re.sub(r"^```json\s*|^```\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
         return json.loads(text)
     except Exception as e:
@@ -63,16 +77,15 @@ def _call_claude_json(prompt: str) -> Optional[Dict]:
 
 
 def classify_query(question: str) -> Dict:
-    """Use Claude to classify the query into category/subcategory."""
+    """Use the configured LLM to classify the query into category/subcategory."""
     prompt = CLASSIFICATION_PROMPT.format(question=question)
-    result = _call_claude_json(prompt)
+    result = _call_llm_json(prompt)
     if not result:
-        # Fallback: simple keyword detection
         q = question.lower()
         category = "unknown"
-        if any(w in q for w in ["residencia", "residency", "migraciones", "radicación"]):
+        if any(w in q for w in ["residencia", "residency", "migraciones", "radicacion"]):
             category = "residencia"
-        elif any(w in q for w in ["cédula", "cedula", "identidad", "dni", "dnic", "documento"]):
+        elif any(w in q for w in ["cedula", "identidad", "dni", "dnic", "documento"]):
             category = "cedula"
         try:
             lang = detect_lang(question)
@@ -85,7 +98,7 @@ def classify_query(question: str) -> Dict:
 def build_context(chunks: List[Dict]) -> str:
     """Format retrieved chunks into a readable context block."""
     if not chunks:
-        return "No se encontró contexto relevante en la base de conocimiento."
+        return "No relevant context found in the knowledge base."
 
     parts = []
     seen_sources = set()
@@ -97,7 +110,7 @@ def build_context(chunks: List[Dict]) -> str:
         if key not in seen_sources:
             seen_sources.add(key)
             parts.append(
-                f"--- [Fuente {i}: {title} | {src}] ---\n{chunk['text']}"
+                f"--- [Source {i}: {title} | {src}] ---\n{chunk['text']}"
             )
     return "\n\n".join(parts)
 
@@ -105,9 +118,11 @@ def build_context(chunks: List[Dict]) -> str:
 def answer_question(
     question: str,
     conversation_history: Optional[List[Dict]] = None,
+    language: Optional[str] = None,
 ) -> Dict:
     """
-    Full pipeline: classify → retrieve → generate.
+    Full pipeline: classify -> retrieve -> generate.
+    language param (from UI) takes precedence over auto-detection.
     Returns dict with keys: answer, category, subcategory, language, sources.
     """
     settings = get_settings()
@@ -116,8 +131,10 @@ def answer_question(
     classification = classify_query(question)
     category = classification.get("category")
     subcategory = classification.get("subcategory")
-    language = classification.get("language", "es")
-    logger.info(f"Classified: category={category}, subcategory={subcategory}, lang={language}")
+    detected_lang = classification.get("language", "es")
+    # Explicit UI language overrides auto-detection
+    resolved_language = language if language in ("es", "en") else detected_lang
+    logger.info(f"Classified: category={category}, subcategory={subcategory}, lang={resolved_language}")
 
     # 2. Retrieve chunks
     cat_filter = category if category != "unknown" else None
@@ -128,7 +145,6 @@ def answer_question(
         n_results=8,
     )
 
-    # If filtered results are thin, broaden search
     if len(chunks) < 3 and cat_filter:
         chunks = retrieve(query=question, n_results=8)
 
@@ -140,39 +156,40 @@ def answer_question(
     })
 
     # 3. Generate answer
-    client = anthropic.Anthropic(api_key=settings.anthropic.api_key)
     messages: List[Dict] = []
 
     if conversation_history:
-        messages.extend(conversation_history[-6:])  # last 3 turns
+        messages.extend(conversation_history[-6:])
 
     user_message = (
-        f"CONTEXTO LEGAL RELEVANTE:\n{context}\n\n"
-        f"---\n\nPREGUNTA DEL USUARIO:\n{question}"
+        f"RELEVANT LEGAL CONTEXT:\n{context}\n\n"
+        f"---\n\nUSER QUESTION:\n{question}"
     )
     messages.append({"role": "user", "content": user_message})
 
+    system_prompt = _get_system_prompt(resolved_language)
+
     try:
-        response = client.messages.create(
-            model=settings.anthropic.model,
-            max_tokens=settings.anthropic.max_tokens,
-            temperature=settings.anthropic.temperature,
-            system=SYSTEM_PROMPT,
+        answer = create_chat_completion(
             messages=messages,
+            max_tokens=settings.llm.max_tokens,
+            temperature=settings.llm.temperature,
+            model=settings.llm.model_name,
+            system_prompt=system_prompt,
         )
-        answer = response.content[0].text
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
         answer = (
-            "Lo siento, ocurrió un error al procesar su consulta. "
-            "Por favor, intente nuevamente."
+            "Sorry, an error occurred while processing your query. Please try again."
+            if resolved_language == "en"
+            else "Lo siento, ocurrio un error al procesar su consulta. Por favor, intente nuevamente."
         )
 
     return {
         "answer": answer,
         "category": category,
         "subcategory": subcategory,
-        "language": language,
+        "language": resolved_language,
         "sources": sources,
         "chunks_used": len(chunks),
     }

@@ -25,6 +25,7 @@ async def chat(request: ChatRequest):
         result = answer_question(
             question=request.question,
             conversation_history=history,
+            language=request.language,
         )
 
         session_id = request.session_id or str(uuid.uuid4())

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { sendChat } from '../utils/api'
 
-export function useChat() {
+export function useChat(language) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -22,7 +22,7 @@ export function useChat() {
     const history = messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
 
     try {
-      const result = await sendChat(question, history, sessionId.current)
+      const result = await sendChat(question, history, sessionId.current, language)
       addMessage('assistant', result.answer, {
         category: result.category,
         subcategory: result.subcategory,

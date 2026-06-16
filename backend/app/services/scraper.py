@@ -24,13 +24,7 @@ HEADERS = {
     )
 }
 
-# Additional targeted URLs for Uruguay law
-SEED_URLS = [
-    "https://www.gub.uy/tramites/",
-    "https://www.gub.uy/ministerio-interior/",
-    "https://www.dnic.gub.uy/",
-    "https://www.mides.gub.uy/",
-]
+SEED_URLS: List[str] = []  # populated from settings.scraping.base_urls at runtime
 
 
 def _is_relevant(text: str, url: str, keywords: List[str]) -> bool:
@@ -115,7 +109,7 @@ def scrape_gub_uy() -> List[Dict]:
     timeout = settings.scraping.timeout_seconds
 
     visited: set = set()
-    to_visit: List[str] = list(SEED_URLS)
+    to_visit: List[str] = list(settings.scraping.base_urls)
     metadata_list: List[Dict] = []
 
     session = requests.Session()
