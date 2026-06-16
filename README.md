@@ -1,6 +1,6 @@
-# 🇺🇾 UruguayLex — Asistente Legal / Legal Assistant
+# CivicAssist — Asistente Legal / Legal Assistant
 
-**UruguayLex** is a RAG-powered bilingual legal assistant specialising in Uruguayan law for:
+**CivicAssist** is a RAG-powered bilingual legal assistant specialising in Uruguayan law for:
 - **Residencia** (Permanent, Temporary, Refugio, Prórroga, Category Change)
 - **Cédula de Identidad** (Uruguayans, Foreigners, Renewal, First-time, Duplicates)
 

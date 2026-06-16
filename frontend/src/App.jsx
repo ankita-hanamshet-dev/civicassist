@@ -16,7 +16,7 @@ export default function App() {
           <div className="brand">
             <span className="brand-flag">🇺🇾</span>
             <div>
-              <h1 className="brand-name">UruguayLex</h1>
+              <h1 className="brand-name">CivicAssist</h1>
               <p className="brand-tagline">{t.tagline}</p>
             </div>
           </div>

@@ -1,14 +1,17 @@
 app:
-  name: "UruguayLex - Asistente Legal"
+  name: "CivicAssist - Asistente Legal"
   version: "1.0.0"
-  debug: false
+  debug: true
+
 
 api:
   base_url: "http://localhost:8000"
   prefix: "/api/v1"
   cors_origins:
     - "http://localhost:3000"
+    - "http://localhost:3001"
     - "http://localhost:5173"
+    - "http://127.0.0.1:3001"
 
 anthropic:
   api_key: "${ANTHROPIC_API_KEY}"
@@ -17,7 +20,7 @@ anthropic:
   temperature: 0.2
 
 paths:
-  raw_pdfs: "C:/Users/abirs/Documents/Cursor/LAWassist/data/raw_pdfs"
+  raw_pdfs: "./backend/data/rawPDF"
   markdown_output: "./backend/data/markdown"
   vectorstore: "./backend/data/vectorstore"
   index_file: "./backend/data/markdown/INDEX.md"

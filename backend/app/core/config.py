@@ -47,7 +47,7 @@ class ScrapingConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
-    name: str = "UruguayLex"
+    name: str = "CivicAssist"
     version: str = "1.0.0"
     debug: bool = False
 
@@ -76,9 +76,51 @@ def _resolve_env_vars(value: Any) -> Any:
     return value
 
 
+def _find_config_path(config_path: Path) -> Path:
+    if config_path.exists():
+        return config_path
+
+    # If running inside backend/, look for repo-root config/config.yaml
+    repo_root = Path(__file__).resolve().parents[3]
+    repo_candidate = repo_root / "config" / "config.yaml"
+    if repo_candidate.exists():
+        return repo_candidate
+
+    # Search upward from current working directory for config/config.yaml
+    for parent in Path.cwd().resolve().parents:
+        candidate = parent / "config" / "config.yaml"
+        if candidate.exists():
+            return candidate
+
+    return config_path
+
+
+def _resolve_path_values(raw: Dict, base_dir: Path) -> Dict:
+    if not isinstance(raw, dict):
+        return raw
+
+    paths = raw.get("paths")
+    if isinstance(paths, dict):
+        for key, value in paths.items():
+            if isinstance(value, str):
+                p = Path(value)
+                if not p.is_absolute():
+                    raw["paths"][key] = str((base_dir / p).resolve())
+
+    chromadb = raw.get("chromadb")
+    if isinstance(chromadb, dict):
+        persist_dir = chromadb.get("persist_directory")
+        if isinstance(persist_dir, str):
+            p = Path(persist_dir)
+            if not p.is_absolute():
+                raw["chromadb"]["persist_directory"] = str((base_dir / p).resolve())
+
+    return raw
+
+
 def load_settings(config_path: Optional[str] = None) -> Settings:
     config_path = config_path or os.getenv("CONFIG_PATH", "./config/config.yaml")
-    path = Path(config_path)
+    path = _find_config_path(Path(config_path))
 
     if not path.exists():
         logger.warning(f"Config file not found at {path}; using defaults.")
@@ -88,6 +130,17 @@ def load_settings(config_path: Optional[str] = None) -> Settings:
             raw = yaml.safe_load(f) or {}
 
     raw = _resolve_env_vars(raw)
+    repo_root = path.parent.parent
+    raw = _resolve_path_values(raw, repo_root)
+
+    if path.exists():
+        logger.info(f"Loaded configuration from {path}")
+    logger.info("Resolved paths:")
+    if isinstance(raw.get("paths"), dict):
+        for key, value in raw["paths"].items():
+            logger.info(f"  paths.{key} = {value}")
+    if isinstance(raw.get("chromadb"), dict) and raw["chromadb"].get("persist_directory"):
+        logger.info(f"  chromadb.persist_directory = {raw['chromadb']['persist_directory']}")
 
     # Override API key from env if present
     api_key_env = os.getenv("ANTHROPIC_API_KEY", "")

@@ -1,9 +1,9 @@
 @echo off
 REM ================================================
-REM  UruguayLex — Backend Startup Script (Windows)
+REM  CivicAssist — Backend Startup Script (Windows)
 REM ================================================
 echo.
-echo  UruguayLex - Iniciando backend...
+echo  CivicAssist - Iniciando backend...
 echo  ============================================
 
 cd /d "%~dp0backend"

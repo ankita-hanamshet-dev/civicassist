@@ -1,9 +1,9 @@
 @echo off
 REM ================================================
-REM  UruguayLex — Frontend Startup Script (Windows)
+REM  CivicAssist — Frontend Startup Script (Windows)
 REM ================================================
 echo.
-echo  UruguayLex - Iniciando frontend...
+echo  CivicAssist - Iniciando frontend...
 echo  ============================================
 
 cd /d "%~dp0..\frontend"

@@ -74,7 +74,7 @@ def build_index(extra_metadata: List[Dict] = None) -> str:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     lines = [
-        "# UruguayLex — Índice de Conocimiento Legal",
+        "# CivicAssist — Índice de Conocimiento Legal",
         "",
         f"> Generado automáticamente el {now}",
         "",
