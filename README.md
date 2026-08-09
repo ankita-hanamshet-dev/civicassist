@@ -5,6 +5,12 @@ It supports Spanish and English, and answers questions using local knowledge fro
 
 **Docs:** [Vision](docs/VISION.md) · [Architecture](docs/ARCHITECTURE.md) · [User Guide](docs/USER_GUIDE.md)
 
+## Screenshots
+
+| Chat | Admin |
+|------|-------|
+| ![Chat page](docs/screenshots/chat-page.png) | ![Admin panel](docs/screenshots/admin-panel.png) |
+
 ## Key Features
 
 - Question answering for Uruguayan:
@@ -60,23 +66,40 @@ It supports Spanish and English, and answers questions using local knowledge fro
 
 ---
 
-## Setup
+## Quick Start
+
+```bash
+# 1. Configure environment (copy template, then add your LLM key)
+cp .env.example backend/.env
+
+# 2. Start the backend (creates venv + installs deps on first run)
+./scripts/start_backend.sh          # Mac / Linux
+# scripts\start_backend.bat         # Windows
+
+# 3. In a second terminal, start the frontend
+./scripts/start_frontend.sh         # Mac / Linux
+# scripts\start_frontend.bat        # Windows
+```
+
+Then open **http://localhost:3000**.
+
+> The repo ships with pre-ingested data (PDFs, scraped Markdown, and a ChromaDB
+> vector store under `backend/data/`), so search works immediately. You only need
+> to add an LLM key to get generated answers — see [Configuration](#configuration).
+> Without a key the chat still returns relevant sources and replies
+> **"No LLM connected"**.
+
+## Manual Setup
 
 ### Backend
 
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Linux / Mac
+python3 -m venv venv
+source venv/bin/activate      # Linux / Mac
+# venv\Scripts\activate       # Windows
 pip install -r requirements.txt
-```
-
-Start the server:
-
-```bash
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+python main.py                # serves on http://localhost:8000
 ```
 
 ### Frontend
@@ -84,14 +107,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 cd frontend
 npm install
-npm run dev
-```
-
-### Start with scripts (Windows)
-
-```bash
-scripts\start_backend.bat
-scripts\start_frontend.bat
+npm run dev                    # serves on http://localhost:3000
 ```
 
 ---
@@ -162,40 +178,40 @@ Credentials are set in `config/config.yaml` under the `admin` section. The front
 
 ---
 
-## LLM Provider Examples
+## Configuring the LLM
 
-### Claude / Anthropic
+The simplest way to connect an LLM is via **`backend/.env`** (copied from
+[`.env.example`](.env.example)). These variables override `config.yaml` at
+runtime — no need to edit YAML:
 
-```yaml
-llm:
-  api_endpoint: "https://api.anthropic.com"
-  api_key: "${LLM_API_KEY}"
-  model_name: "claude-sonnet-4-6"
-  chat_endpoint: "/v1/chat/completions"
-  embedding_endpoint: "/v1/embeddings"
+```bash
+# backend/.env
+LLM_API_KEY=sk-...                       # your provider key (leave empty = no LLM)
+LLM_API_ENDPOINT=https://api.anthropic.com
+LLM_MODEL_NAME=claude-sonnet-4-5
+# LLM_CHAT_ENDPOINT=/v1/chat/completions # OpenAI-style providers only
 ```
 
-### OpenAI
+The provider is auto-detected from `LLM_API_ENDPOINT`:
 
-```yaml
-llm:
-  api_endpoint: "https://api.openai.com"
-  api_key: "${LLM_API_KEY}"
-  model_name: "gpt-4o-mini"
-  chat_endpoint: "/v1/chat/completions"
-  embedding_endpoint: "/v1/embeddings"
-```
+| Provider | `LLM_API_ENDPOINT` | Notes |
+|----------|--------------------|-------|
+| **Anthropic (Claude)** | `https://api.anthropic.com` | Uses the native `/v1/messages` API and `x-api-key` auth automatically |
+| **OpenAI** | `https://api.openai.com` | Uses `/v1/chat/completions` and `Authorization: Bearer` |
+| **Ollama** | `http://localhost:11434` | No API key required |
 
-### Ollama (on-prem or cloud)
+After changing `backend/.env`, restart the backend.
 
-```yaml
-llm:
-  api_endpoint: "http://localhost:11434"
-  api_key: ""
-  model_name: "llama3"
-  chat_endpoint: "/v1/chat/completions"
-  embedding_endpoint: "/v1/embeddings"
-```
+### No LLM connected
+
+If `LLM_API_KEY` is empty, or the configured key/endpoint fails authentication
+or is unreachable, the chat still retrieves relevant sources but the answer is
+simply:
+
+> **No LLM connected.** Configure an LLM provider (LLM_API_KEY and
+> LLM_API_ENDPOINT) in backend/.env, then restart the backend to enable answers.
+
+This lets you run and explore the app end-to-end without any API credentials.
 
 ---
 
