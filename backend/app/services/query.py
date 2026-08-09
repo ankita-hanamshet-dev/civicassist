@@ -13,8 +13,15 @@ from langdetect import detect as detect_lang
 from loguru import logger
 
 from app.core.config import get_settings
-from app.services.llm import create_chat_completion
+from app.services.llm import create_chat_completion, LLMNotConnectedError
 from app.services.vectorstore import retrieve
+
+NO_LLM_MESSAGE = {
+    "en": "No LLM connected. Configure an LLM provider (LLM_API_KEY and LLM_API_ENDPOINT) "
+          "in backend/.env, then restart the backend to enable answers.",
+    "es": "No hay un LLM conectado. Configure un proveedor de LLM (LLM_API_KEY y LLM_API_ENDPOINT) "
+          "en backend/.env y reinicie el backend para habilitar las respuestas.",
+}
 
 SYSTEM_PROMPT_ES = """Eres CivicAssist, un asistente legal especializado en leyes y tramites de Uruguay, especificamente en:
 - **Residencia** (permanente, temporaria, refugio, prorrogas, cambios de categoria)
@@ -184,6 +191,9 @@ def answer_question(
             model=settings.llm.model_name,
             system_prompt=system_prompt,
         )
+    except LLMNotConnectedError as e:
+        logger.warning(f"LLM not connected: {e}")
+        answer = NO_LLM_MESSAGE["en"] if resolved_language == "en" else NO_LLM_MESSAGE["es"]
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
         answer = (

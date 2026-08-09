@@ -1,7 +1,24 @@
+# Environment
 *.env
+!.env.example
 .claude
+
+# Python
 backend/venv/
-frontend/node_modules/
+venv/
 __pycache__/
 *.pyc
+*.pyo
+
+# Node / Vite
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+
+# Logs
 *.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

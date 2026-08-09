@@ -22,7 +22,7 @@ class APIConfig(BaseModel):
 class LLMConfig(BaseModel):
     api_endpoint: str = "https://api.anthropic.com"
     api_key: str = ""
-    model_name: str = "claude-sonnet-4-6"
+    model_name: str = "claude-sonnet-4-5"
     temperature: float = 0.2
     max_tokens: int = 2048
     chat_endpoint: str = "/v1/chat/completions"
@@ -147,7 +147,7 @@ def load_settings(config_path: Optional[str] = None) -> Settings:
         raw["llm"] = {
             "api_endpoint": raw["anthropic"].get("api_endpoint", "https://api.anthropic.com"),
             "api_key": raw["anthropic"].get("api_key", ""),
-            "model_name": raw["anthropic"].get("model", "claude-sonnet-4-6"),
+            "model_name": raw["anthropic"].get("model", "claude-sonnet-4-5"),
             "max_tokens": raw["anthropic"].get("max_tokens", 2048),
             "temperature": raw["anthropic"].get("temperature", 0.2),
             "chat_endpoint": raw["anthropic"].get("chat_endpoint", "/v1/chat/completions"),

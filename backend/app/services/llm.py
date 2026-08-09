@@ -9,6 +9,28 @@ from loguru import logger
 
 from app.core.config import get_settings
 
+ANTHROPIC_VERSION = "2023-06-01"
+ANTHROPIC_MESSAGES_PATH = "/v1/messages"
+
+
+class LLMNotConnectedError(Exception):
+    """Raised when no LLM is configured or the configured LLM is unreachable."""
+
+
+def _requires_api_key(provider: str) -> bool:
+    # Local Ollama does not need an API key; hosted providers do.
+    return provider != "ollama"
+
+
+def is_llm_configured() -> bool:
+    """True when enough config is present to attempt an LLM call."""
+    settings = get_settings()
+    if not settings.llm.api_endpoint and not settings.llm.chat_endpoint:
+        return False
+    if _requires_api_key(_provider_name()) and not settings.llm.api_key:
+        return False
+    return True
+
 
 def _build_url(base: str, path: str) -> str:
     if not path:
@@ -38,17 +60,29 @@ def _build_headers() -> Dict[str, str]:
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
-    if settings.llm.api_key:
-        provider = _provider_name()
-        if provider == "anthropic":
+    provider = _provider_name()
+    if provider == "anthropic":
+        headers["anthropic-version"] = ANTHROPIC_VERSION
+        if settings.llm.api_key:
             headers["x-api-key"] = settings.llm.api_key
-        else:
-            headers["Authorization"] = f"Bearer {settings.llm.api_key}"
+    elif settings.llm.api_key:
+        headers["Authorization"] = f"Bearer {settings.llm.api_key}"
     return headers
 
 
 def _parse_chat_response(data: Any) -> str:
     if isinstance(data, dict):
+        # Anthropic Messages API: {"content": [{"type": "text", "text": "..."}]}
+        content_blocks = data.get("content")
+        if isinstance(content_blocks, list):
+            texts = [
+                b.get("text", "")
+                for b in content_blocks
+                if isinstance(b, dict) and b.get("type") == "text"
+            ]
+            if texts:
+                return "".join(texts)
+
         choices = data.get("choices")
         if isinstance(choices, list) and choices:
             first = choices[0]
@@ -99,7 +133,12 @@ def create_chat_completion(
 ) -> str:
     settings = get_settings()
     provider = _provider_name()
-    url = _build_url(settings.llm.api_endpoint, settings.llm.chat_endpoint)
+
+    if not is_llm_configured():
+        raise LLMNotConnectedError(
+            "No LLM configured: set LLM_API_KEY and LLM_API_ENDPOINT in backend/.env."
+        )
+
     payload: Dict[str, Any] = {
         "model": model or settings.llm.model_name,
         "messages": messages,
@@ -108,11 +147,13 @@ def create_chat_completion(
         payload["temperature"] = temperature
 
     if provider == "anthropic":
-        if max_tokens is not None:
-            payload["max_tokens_to_sample"] = max_tokens
+        # Anthropic native Messages API (not the OpenAI-style /v1/chat/completions).
+        url = _build_url(settings.llm.api_endpoint, ANTHROPIC_MESSAGES_PATH)
+        payload["max_tokens"] = max_tokens if max_tokens is not None else settings.llm.max_tokens
         if system_prompt is not None:
             payload["system"] = system_prompt
     else:
+        url = _build_url(settings.llm.api_endpoint, settings.llm.chat_endpoint)
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
         if system_prompt is not None:
@@ -122,9 +163,18 @@ def create_chat_completion(
         response = httpx.post(url, headers=_build_headers(), json=payload, timeout=30)
         response.raise_for_status()
         return _parse_chat_response(response.json())
-    except Exception as e:
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
         logger.error(f"LLM chat request failed: {e}")
+        if status in (401, 403):
+            raise LLMNotConnectedError(
+                f"LLM authentication failed ({status}). Check LLM_API_KEY in backend/.env."
+            ) from e
         raise
+    except httpx.RequestError as e:
+        # Connection refused, DNS failure, timeout, etc.
+        logger.error(f"LLM endpoint unreachable: {e}")
+        raise LLMNotConnectedError(f"LLM endpoint unreachable: {e}") from e
 
 
 def create_embedding(input_texts: Union[str, Sequence[str]], model: Optional[str] = None) -> List[List[float]]:
